@@ -94,7 +94,6 @@ pub fn ui() {
         );
     });
 
-        //  AI show timer counter 
 
     app.run();
 }
@@ -114,7 +113,11 @@ fn setting() -> gtk4::Label {
          .metric { font-size: 20px; font-weight: 700; }
          .secondary { color: #8f98a8; font-size: 12px; }
          .traffic-column { padding: 18px; }
-         .interface-picker button { background: #303542; color: #f4f5f7; border-radius: 10px; padding: 8px 12px; }
+         .interface-picker { background: #1d2129; color: #f4f5f7; border-radius: 10px; }
+         .interface-picker button,
+         .interface-picker list,
+         .interface-picker list row { background: #1d2129; color: #f4f5f7; }
+         .interface-picker button { border: 1px solid #3f4657; border-radius: 10px; padding: 8px 12px; }
          button { border-radius: 10px; padding: 8px 14px; }",
     );
 
@@ -132,13 +135,8 @@ fn setting() -> gtk4::Label {
 }
 
 fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>) -> gtk4::DrawingArea {
-    // AI graph convert to spline or curve not sharp like Gradient Spline chart
-    // Show number chart pivot Y : 0 to 1 MB/s
-    // If high speed to bigger than 1MB/s (show KB in 1MB/s) change number to 2MB/s
-    // If bigger than 2MB/s change to 5MB/s
-    // If bigger than 5MB/s change to 10MB/s
-    // Keep adding 5 to the next numbers the same way. But show the values lower than it.
-
+  
+  
     let area = gtk4::DrawingArea::new();
     area.set_content_height(220);
     area.set_hexpand(true);
@@ -223,12 +221,12 @@ fn chart_scale(value: f64) -> f64 {
 }
 
 fn format_speed(value: f64) -> String {
-    if value >= 1000.0 {
-        format!("{:.0}k", value / 1000.0)
-    } else if value >= 1.0 {
-        format!("{value:.1}M")
+    if value < 1.0 {
+        format!("{:.0} KB/s", value * 1000.0)
+    } else if value < 10.0 {
+        format!("{value:.1} MB/s")
     } else {
-        "0".to_string()
+        format!("{value:.0} MB/s")
     }
 }
 
@@ -257,7 +255,6 @@ fn btn_ui(paused: Rc<Cell<bool>>) -> gtk4::Button {
 }
 
 fn drop_down(interfaces: &[String]) -> gtk4::DropDown {
-    // AI drop down should be like a theme and color not default device fix it.
 
     let names: Vec<&str> = interfaces.iter().map(String::as_str).collect();
     let dropdown = gtk4::DropDown::from_strings(&names);
@@ -282,6 +279,7 @@ fn traffic_column(title: &str, speed: &gtk4::Label, total: &gtk4::Label) -> gtk4
     column
 }
 
+// Graph line
 fn draw_speed_line(
     context: &gtk4::cairo::Context,
     samples: &[(f64, f64)],
