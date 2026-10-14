@@ -5,9 +5,74 @@ use std::rc::Rc;
 use std::time::Duration;
 use sysinfo::Networks;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ThemeMode {
+    Dark,
+    Light,
+    System,
+}
 
+impl ThemeMode {
+    fn next(self) -> Self {
+        match self {
+            Self::Dark => Self::Light,
+            Self::Light => Self::System,
+            Self::System => Self::Dark,
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Dark => "Dark",
+            Self::Light => "Light",
+            Self::System => "System",
+        }
+    }
+
+    fn is_dark(self) -> bool {
+        match self {
+            Self::Dark => true,
+            Self::Light => false,
+            Self::System => gtk4::Settings::default()
+                .map(|settings| settings.is_gtk_application_prefer_dark_theme())
+                .unwrap_or(true),
+        }
+    }
+
+    fn graph_colors(self) -> ((f64, f64, f64), (f64, f64, f64)) {
+        if self.is_dark() {
+            ((0.96, 0.55, 0.02), (0.62, 0.01, 0.03))
+        } else {
+            ((0.98, 0.65, 0.03), (0.86, 0.18, 0.01))
+        }
+    }
+
+    fn axis_color(self) -> (f64, f64, f64, f64) {
+        if self.is_dark() {
+            (1.0, 1.0, 1.0, 1.0)
+        } else {
+            (0.08, 0.09, 0.10, 1.0)
+        }
+    }
+}
+
+fn apply_theme(content: &gtk4::Box, theme: ThemeMode) {
+    content.remove_css_class("theme-dark");
+    content.remove_css_class("theme-light");
+    content.add_css_class(if theme.is_dark() {
+        "theme-dark"
+    } else {
+        "theme-light"
+    });
+}
 
 pub fn ui() {
+
+    /* AI Fix bug
+    
+    1-Theme app is not completlly efort , when change theme still corner window is dark and not follow by theme ligt or dark
+    2- 
+     */
     let app = gtk4::Application::builder()
         .application_id("com.example.NetworkMonitor")
         .build();
@@ -22,7 +87,8 @@ pub fn ui() {
         let upload_total = secondary_text("Total: 0 MB");
         let timer_counter = text_ui("00:00");
         let samples = Rc::new(RefCell::new(Vec::new()));
-        let speed_graph = graph(Rc::clone(&samples));
+        let theme_mode = Rc::new(Cell::new(ThemeMode::Dark));
+        let speed_graph = graph(Rc::clone(&samples), Rc::clone(&theme_mode));
         let paused = Rc::new(Cell::new(false));
         let elapsed = Rc::new(Cell::new(0_u64));
         let pause_button = btn_ui(Rc::clone(&paused));
@@ -34,6 +100,7 @@ pub fn ui() {
         content.set_margin_end(24);
         content.set_halign(gtk4::Align::Center);
         content.add_css_class("dashboard");
+        apply_theme(&content, theme_mode.get());
 
         let title = gtk4::Label::new(Some("Network monitor"));
         title.set_xalign(0.0);
@@ -50,7 +117,20 @@ pub fn ui() {
 
         let controls = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
         interface_picker.set_hexpand(true);
+
+        let theme_btn = gtk4::Button::with_label(theme_mode.get().label());
+        theme_btn.set_size_request(116, 38);
+        let content_for_theme = content.clone();
+        let theme_mode_for_signal = Rc::clone(&theme_mode);
+        theme_btn.connect_clicked(move |button| {
+            let next = theme_mode_for_signal.get().next();
+            theme_mode_for_signal.set(next);
+            apply_theme(&content_for_theme, next);
+            button.set_label(next.label());
+        });
+
         controls.append(&interface_picker);
+        controls.append(&theme_btn);
         controls.append(&pause_button);
 
         let traffic = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
@@ -94,7 +174,6 @@ pub fn ui() {
         );
     });
 
-
     app.run();
 }
 
@@ -106,19 +185,39 @@ fn setting() -> gtk4::Label {
     let provider = gtk4::CssProvider::new();
     provider.load_from_data(
         "window { background: #17191f; color: #f4f5f7; }
+         .theme-dark { background: #212529; color: #f4f5f7; }
+         .theme-light { background: #edede9; color: #111827; }
          .dashboard { min-width: 720px; }
+         .theme-dark .dashboard { background: #212529; }
+         .theme-light .dashboard { background: #edede9; }
          .panel { background: #242832; border-radius: 12px; padding: 16px; }
+         .theme-dark .panel { background: #343a40; }
+         .theme-light .panel { background: #d6ccc2; }
          .heading { font-size: 26px; font-weight: 700; }
+         .theme-dark .heading { color: #f4f5f7; }
+         .theme-light .heading { color: #1f2937; }
          .muted { color: #aeb5c2; }
+         .theme-light .muted { color: #4b5563; }
          .metric { font-size: 20px; font-weight: 700; }
+         .theme-dark .metric { color: #f4f5f7; }
+         .theme-light .metric { color: #1f2937; }
          .secondary { color: #8f98a8; font-size: 12px; }
+         .theme-light .secondary { color: #5b6470; }
          .traffic-column { padding: 18px; }
          .interface-picker { background: #1d2129; color: #f4f5f7; border-radius: 10px; }
+         .theme-dark .interface-picker { background: #343a40; color: #f4f5f7; }
+         .theme-light .interface-picker { background: #d6ccc2; color: #111827; border: 1px solid #bcaea2; }
          .interface-picker button,
          .interface-picker list,
          .interface-picker list row { background: #1d2129; color: #f4f5f7; }
+         .theme-light .interface-picker button,
+         .theme-light .interface-picker list,
+         .theme-light .interface-picker list row { background: #d6ccc2; color: #111827; }
          .interface-picker button { border: 1px solid #3f4657; border-radius: 10px; padding: 8px 12px; }
-         button { border-radius: 10px; padding: 8px 14px; }",
+         .theme-light .interface-picker button { border: 1px solid #b59a89; }
+         button { border-radius: 10px; padding: 8px 14px; }
+         .theme-dark button { background: #343a40; color: #f4f5f7; }
+         .theme-light button { background: #d6ccc2; color: #111827; }",
     );
 
     if let Some(display) = gtk4::gdk::Display::default() {
@@ -134,9 +233,7 @@ fn setting() -> gtk4::Label {
     version
 }
 
-fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>) -> gtk4::DrawingArea {
-  
-  
+fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>, theme_mode: Rc<Cell<ThemeMode>>) -> gtk4::DrawingArea {
     let area = gtk4::DrawingArea::new();
     area.set_content_height(220);
     area.set_hexpand(true);
@@ -157,8 +254,10 @@ fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>) -> gtk4::DrawingArea {
             .fold(0.0_f64, f64::max)
             .max(1.0);
         let maximum = chart_scale(max_value);
+        let axis_color = theme_mode.get().axis_color();
+        let graph_colors = theme_mode.get().graph_colors();
 
-        context.set_source_rgba(0.75, 0.78, 0.84, 0.16);
+        context.set_source_rgba(axis_color.0, axis_color.1, axis_color.2, axis_color.3);
         context.set_font_size(10.0);
         for row in 0..=4 {
             let y = padding + chart_height * row as f64 / 4.0;
@@ -168,7 +267,7 @@ fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>) -> gtk4::DrawingArea {
 
             let label = format_speed(maximum * (1.0 - row as f64 / 4.0));
             context.move_to(4.0, y + 4.0);
-            context.show_text(&label);
+            let _ = context.show_text(&label);
         }
 
         draw_speed_line(
@@ -179,7 +278,7 @@ fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>) -> gtk4::DrawingArea {
             chart_width,
             chart_height,
             padding,
-            (1.0, 0.76, 0.25),
+            graph_colors.0,
         );
         draw_speed_line(
             context,
@@ -189,7 +288,7 @@ fn graph(samples: Rc<RefCell<Vec<(f64, f64)>>>) -> gtk4::DrawingArea {
             chart_width,
             chart_height,
             padding,
-            (0.96, 0.30, 0.36),
+            graph_colors.1,
         );
     });
 
@@ -246,6 +345,7 @@ fn secondary_text(text: &str) -> gtk4::Label {
 
 fn btn_ui(paused: Rc<Cell<bool>>) -> gtk4::Button {
     let button = gtk4::Button::with_label("Pause");
+    button.set_size_request(120, 38);
     button.connect_clicked(move |button| {
         let is_paused = !paused.get();
         paused.set(is_paused);
@@ -255,10 +355,10 @@ fn btn_ui(paused: Rc<Cell<bool>>) -> gtk4::Button {
 }
 
 fn drop_down(interfaces: &[String]) -> gtk4::DropDown {
-
     let names: Vec<&str> = interfaces.iter().map(String::as_str).collect();
     let dropdown = gtk4::DropDown::from_strings(&names);
     dropdown.add_css_class("interface-picker");
+    dropdown.set_size_request(0, 38);
     if !interfaces.is_empty() {
         dropdown.set_selected(0);
     }
@@ -279,7 +379,6 @@ fn traffic_column(title: &str, speed: &gtk4::Label, total: &gtk4::Label) -> gtk4
     column
 }
 
-// Graph line
 fn draw_speed_line(
     context: &gtk4::cairo::Context,
     samples: &[(f64, f64)],
@@ -358,7 +457,6 @@ fn format_timer(seconds: u64) -> String {
     format!("{minutes:02}:{secs:02}")
 }
 
-// Timer
 fn timer(
     interfaces: Rc<Vec<String>>,
     interface_picker: gtk4::DropDown,
