@@ -1,0 +1,40 @@
+# Rust build artifacts
+/target/
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Debug symbols
+*.pdb
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# Coverage reports
+/tarpaulin-report.html
+/cobertura.xml
+
+# Rust analyzer cache
+rust-project.json
