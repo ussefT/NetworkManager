@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 gtk4 = "0.11.5"
 sysinfo = "0.39.6"
+tray-icon = { version = "0.26.1", default-features = false, features = ["ksni"] }

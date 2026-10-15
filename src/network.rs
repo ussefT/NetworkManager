@@ -1,16 +1,13 @@
-use sysinfo::Networks;
 use std::collections::BTreeMap;
+use sysinfo::Networks;
 
 // AI do it my order
 
-// Get interface 
+// Get interface
 pub fn get_interface() -> Vec<String> {
     let networks = Networks::new_with_refreshed_list();
 
-    networks
-        .iter()
-        .map(|(name, _)| name.to_string())
-        .collect()
+    networks.iter().map(|(name, _)| name.to_string()).collect()
 }
 
 pub fn network(networks: &mut Networks) -> BTreeMap<String, BTreeMap<String, String>> {
