@@ -667,8 +667,8 @@ fn setting() {
          button.nav-item.selected { color: #0878f9; background-color: #dceaff; border-color: transparent; font-weight: 600; }
          .surface-card, .metric-card { background-color: #ffffff; border: 1px solid #dce5f1; border-radius: 12px; padding: 14px; }
          .section-heading { color: #172a47; font-size: 17px; font-weight: 700; }
-         .metric-icon.download { color: #0096c7; background-color: alpha(#0096c7, 0.14); border-radius: 999px; padding: 7px; }
-         .metric-icon.upload { color: #90a955; background-color: alpha(#90a955, 0.18); border-radius: 999px; padding: 7px; }
+         .metric-icon.download { color: #0086b3; background-color: alpha(#0096c7, 0.14); border-radius: 999px; padding: 7px; }
+         .metric-icon.upload { color: #78ac00; background-color: alpha(#90a955, 0.18); border-radius: 999px; padding: 7px; }
          .metric-name { color: #40536f; font-size: 13px; }
          .metric-value { color: #172a47; font-size: 24px; font-weight: 700; }
          .metric-detail { font-size: 12px; }
@@ -686,8 +686,8 @@ fn setting() {
          .theme-switch button { min-width: 34px; min-height: 30px; padding: 3px; border: 0; border-radius: 999px; background-color: transparent; }
          .theme-switch button:hover { background-color: #ffffff; }
          .theme-switch button.active { color: #0878f9; background-color: #ffffff; }
-         .download { color: #0096c7; }
-         .upload { color: #90a955; }
+         .download { color: #0086b3; }
+         .upload { color: #78ac00; }
          .plot { background-color: #ffffff; }
          .mini-window { border-radius: 14px; }
          .mini-shell { padding: 16px; }
