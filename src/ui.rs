@@ -130,6 +130,7 @@ fn dashboard(
     let download_total = secondary_text("0.00 B");
     let upload_total = secondary_text("0.00 B");
     let timer_counter = text_ui("00:00");
+    timer_counter.add_css_class("muted");
     let speed_graph = graph(Rc::clone(&samples), 220, theme.clone(), chart_times);
     let pause_button = gtk4::Button::with_label(if paused.get() { "Resume" } else { "Pause" });
     pause_button.add_css_class("primary-button");
@@ -138,35 +139,17 @@ fn dashboard(
     let window = gtk4::ApplicationWindow::builder()
         .application(app)
         .title("Network Manager")
-        .default_width(1120)
-        .default_height(720)
+        .default_width(900)
+        .default_height(620)
         .resizable(false)
         .build();
     window.add_css_class("network-window");
     theme.windows.borrow_mut().push(window.downgrade());
 
-    let root = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
-    root.add_css_class("app-shell");
-    window.set_child(Some(&root));
-
-    let sidebar = gtk4::Box::new(gtk4::Orientation::Vertical, 16);
-    sidebar.set_size_request(205, -1);
-    sidebar.set_margin_top(24);
-    sidebar.set_margin_bottom(20);
-    sidebar.set_margin_start(18);
-    sidebar.set_margin_end(16);
-    sidebar.add_css_class("sidebar");
-    let brand = brand_header();
-    sidebar.append(&brand);
-    let pages = gtk4::Stack::new();
-    pages.set_hexpand(true);
-    pages.set_vexpand(true);
-    root.append(&sidebar);
-
     let workspace = gtk4::Box::new(gtk4::Orientation::Vertical, 16);
     workspace.set_margin_top(20);
     workspace.set_margin_bottom(18);
-    workspace.set_margin_start(18);
+    workspace.set_margin_start(20);
     workspace.set_margin_end(20);
     workspace.set_hexpand(true);
 
@@ -192,19 +175,14 @@ fn dashboard(
     metrics.set_column_spacing(12);
     metrics.set_column_homogeneous(true);
     metrics.attach(
-        &metric_card(
-            "Download Speed",
-            "arrow-down-symbolic",
-            &download_speed,
-            None,
-        ),
+        &metric_card("Download Speed", "arrow-down-symbolic", &download_speed),
         0,
         0,
         1,
         1,
     );
     metrics.attach(
-        &metric_card("Upload Speed", "arrow-up-symbolic", &upload_speed, None),
+        &metric_card("Upload Speed", "arrow-up-symbolic", &upload_speed),
         1,
         0,
         1,
@@ -215,7 +193,6 @@ fn dashboard(
             "Total Downloaded",
             "folder-download-symbolic",
             &download_total,
-            None,
         ),
         2,
         0,
@@ -223,12 +200,7 @@ fn dashboard(
         1,
     );
     metrics.attach(
-        &metric_card(
-            "Total Uploaded",
-            "folder-upload-symbolic",
-            &upload_total,
-            None,
-        ),
+        &metric_card("Total Uploaded", "folder-upload-symbolic", &upload_total),
         3,
         0,
         1,
@@ -245,21 +217,9 @@ fn dashboard(
     footer_status.set_xalign(1.0);
     footer.append(&footer_status);
     footer.append(&timer_counter);
+    footer.append(&version_label());
     workspace.append(&footer);
-    pages.add_named(&workspace, Some("overview"));
-    for page in ["Statistics", "Settings", "About"] {
-        let message = gtk4::Label::new(Some("Coming soon....."));
-        message.add_css_class("coming-soon");
-        let placeholder = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
-        placeholder.set_hexpand(true);
-        placeholder.set_vexpand(true);
-        placeholder.set_halign(gtk4::Align::Center);
-        placeholder.set_valign(gtk4::Align::Center);
-        placeholder.append(&message);
-        pages.add_named(&placeholder, Some(&page.to_lowercase()));
-    }
-    sidebar.append(&navigation(&pages));
-    root.append(&pages);
+    window.set_child(Some(&workspace));
 
     theme.graphs.borrow_mut().push(speed_graph.downgrade());
 
@@ -307,6 +267,7 @@ fn mini_dashboard(
     let download_total = secondary_text("Total: 0 MB");
     let upload_total = secondary_text("Total: 0 MB");
     let timer_counter = text_ui("00:00");
+    timer_counter.add_css_class("muted");
     let speed_graph = graph(Rc::clone(&samples), 150, theme.clone(), chart_times);
     let graph_panel = gtk4::Box::new(gtk4::Orientation::Vertical, 10);
     graph_panel.add_css_class("surface-card");
@@ -322,19 +283,14 @@ fn mini_dashboard(
     metrics.set_row_spacing(8);
     metrics.set_column_homogeneous(true);
     metrics.attach(
-        &metric_card(
-            "Download Speed",
-            "arrow-down-symbolic",
-            &download_speed,
-            None,
-        ),
+        &metric_card("Download Speed", "arrow-down-symbolic", &download_speed),
         0,
         0,
         1,
         1,
     );
     metrics.attach(
-        &metric_card("Upload Speed", "arrow-up-symbolic", &upload_speed, None),
+        &metric_card("Upload Speed", "arrow-up-symbolic", &upload_speed),
         1,
         0,
         1,
@@ -345,7 +301,6 @@ fn mini_dashboard(
             "Total Downloaded",
             "folder-download-symbolic",
             &download_total,
-            None,
         ),
         0,
         1,
@@ -353,12 +308,7 @@ fn mini_dashboard(
         1,
     );
     metrics.attach(
-        &metric_card(
-            "Total Uploaded",
-            "folder-upload-symbolic",
-            &upload_total,
-            None,
-        ),
+        &metric_card("Total Uploaded", "folder-upload-symbolic", &upload_total),
         1,
         1,
         1,
@@ -373,6 +323,8 @@ fn mini_dashboard(
     let footer = gtk4::Box::new(gtk4::Orientation::Horizontal, 8);
     footer.append(&interface_picker);
     footer.append(&pause_button);
+    footer.append(&timer_counter);
+    footer.append(&version_label());
 
     let body = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
     body.set_margin_top(6);
@@ -424,12 +376,7 @@ fn section_heading(text: &str) -> gtk4::Label {
     heading
 }
 
-fn metric_card(
-    name: &str,
-    icon_name: &str,
-    value: &gtk4::Label,
-    detail: Option<&str>,
-) -> gtk4::Box {
+fn metric_card(name: &str, icon_name: &str, value: &gtk4::Label) -> gtk4::Box {
     let card = gtk4::Box::new(gtk4::Orientation::Vertical, 10);
     card.add_css_class("metric-card");
 
@@ -454,11 +401,6 @@ fn metric_card(
     value.set_ellipsize(gtk4::pango::EllipsizeMode::End);
     card.append(&label_row);
     card.append(value);
-    if let Some(detail) = detail {
-        let detail = secondary_text(detail);
-        detail.add_css_class("metric-detail");
-        card.append(&detail);
-    }
     card
 }
 
@@ -479,56 +421,6 @@ fn brand_header() -> gtk4::Box {
     brand.append(&icon);
     brand.append(&brand_text);
     brand
-}
-
-fn navigation(pages: &gtk4::Stack) -> gtk4::Box {
-    let navigation = gtk4::Box::new(gtk4::Orientation::Vertical, 6);
-    for (icon_name, text, page_name) in [
-        ("go-home-symbolic", "Overview", "overview"),
-        ("view-list-symbolic", "Statistics", "statistics"),
-        ("emblem-system-symbolic", "Settings", "settings"),
-        ("help-about-symbolic", "About", "about"),
-    ] {
-        let row = gtk4::Button::new();
-        row.add_css_class("nav-item");
-        if page_name == "overview" {
-            row.add_css_class("selected");
-        }
-        row.set_hexpand(true);
-        row.set_halign(gtk4::Align::Fill);
-        let icon = gtk4::Image::from_icon_name(icon_name);
-        icon.set_pixel_size(18);
-        let label = gtk4::Label::new(Some(text));
-        label.set_xalign(0.0);
-        label.set_hexpand(true);
-        let content = gtk4::Box::new(gtk4::Orientation::Horizontal, 10);
-        content.append(&icon);
-        content.append(&label);
-        row.set_child(Some(&content));
-        let pages = pages.downgrade();
-        let selected_row = row.downgrade();
-        let page_name = page_name.to_string();
-        row.connect_clicked(move |_| {
-            if let Some(pages) = pages.upgrade() {
-                pages.set_visible_child_name(&page_name);
-            }
-            if let Some(selected_row) = selected_row.upgrade() {
-                if let Some(parent) = selected_row
-                    .parent()
-                    .and_then(|parent| parent.downcast::<gtk4::Box>().ok())
-                {
-                    let mut child = parent.first_child();
-                    while let Some(widget) = child {
-                        widget.remove_css_class("selected");
-                        child = widget.next_sibling();
-                    }
-                }
-                selected_row.add_css_class("selected");
-            }
-        });
-        navigation.append(&row);
-    }
-    navigation
 }
 
 fn graph_legend() -> gtk4::Box {
@@ -656,23 +548,16 @@ fn setting() {
     let provider = gtk4::CssProvider::new();
     provider.load_from_data(
         "window.network-window { background-color: #f2f5fa; color: #182b48; }
-         .app-shell, .mini-shell { background-color: #f2f5fa; color: #182b48; }
-         .sidebar { background-color: #f6f8fc; border-right: 1px solid #dce5f1; }
+         .mini-shell { background-color: #f2f5fa; color: #182b48; }
          .brand-name { color: #172a47; font-size: 15px; font-weight: 700; }
          .brand-icon { color: #ffffff; background-color: #0878f9; border-radius: 9px; padding: 7px; }
          .muted, .secondary { color: #71819b; }
-         .nav-item { color: #40536f; border-radius: 9px; padding: 10px 12px; }
-         button.nav-item { background-color: transparent; border-color: transparent; }
-         button.nav-item:hover { background-color: #e8eef7; }
-         button.nav-item.selected { color: #0878f9; background-color: #dceaff; border-color: transparent; font-weight: 600; }
          .surface-card, .metric-card { background-color: #ffffff; border: 1px solid #dce5f1; border-radius: 12px; padding: 14px; }
          .section-heading { color: #172a47; font-size: 17px; font-weight: 700; }
          .metric-icon.download { color: #0086b3; background-color: alpha(#0096c7, 0.14); border-radius: 999px; padding: 7px; }
          .metric-icon.upload { color: #78ac00; background-color: alpha(#90a955, 0.18); border-radius: 999px; padding: 7px; }
          .metric-name { color: #40536f; font-size: 13px; }
          .metric-value { color: #172a47; font-size: 24px; font-weight: 700; }
-         .metric-detail { font-size: 12px; }
-         .coming-soon { color: #71819b; font-size: 22px; font-weight: 600; }
          .footer { border-top: 1px solid #dce5f1; padding-top: 10px; }
          button { color: #263b59; background-color: #e8eef7; border: 1px solid #d5dfec; border-radius: 9px; padding: 7px 12px; }
          button:hover { background-color: #dce7f5; }
@@ -701,15 +586,10 @@ fn setting() {
          .mini-shell .metric-name { font-size: 11px; }
          .mini-shell .metric-icon { padding: 5px; }
          window.network-window.dark-theme { background-color: #101b2c; color: #e9f1ff; }
-         .dark-theme .app-shell, .dark-theme.mini-shell, .dark-theme .mini-shell { background-color: #101b2c; color: #e9f1ff; }
-         .dark-theme .sidebar { background-color: #111e31; border-color: #24344a; }
+         .dark-theme.mini-shell, .dark-theme .mini-shell { background-color: #101b2c; color: #e9f1ff; }
          .dark-theme .brand-name, .dark-theme .section-heading, .dark-theme .metric-value { color: #edf4ff; }
-         .dark-theme .nav-item { color: #b9c8dc; }
-         .dark-theme button.nav-item:hover { background-color: #22334a; }
-         .dark-theme button.nav-item.selected { color: #69adff; background-color: #1f3856; }
          .dark-theme .surface-card, .dark-theme .metric-card { background-color: #17263b; border-color: #293a52; }
          .dark-theme .metric-name, .dark-theme .muted, .dark-theme .secondary { color: #9aacc4; }
-         .dark-theme .coming-soon { color: #9aacc4; }
          .dark-theme .metric-icon.download { color: #0096c7; background-color: alpha(#0096c7, 0.24); }
          .dark-theme .metric-icon.upload { color: #90a955; background-color: alpha(#90a955, 0.24); }
          .dark-theme button { color: #e5eefb; background-color: #22334a; border-color: #32455f; }
