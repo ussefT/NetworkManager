@@ -1,6 +1,6 @@
 # Network Manager
 
-![image](https://github.com/ussefT/NetworkManager/image.png)
+![image](https://github.com/ussefT/NetworkManager/blob/main/image.png)
 
 A small Linux desktop app for keeping an eye on network activity. Network Manager is built with Rust and GTK4, and gives you a full dashboard as well as a compact window you can open from the system tray.
 

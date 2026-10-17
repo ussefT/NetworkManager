@@ -1,7 +1,7 @@
 <h1 dir="rtl" align="right">Network Manager</h1>
 
 <div dir="ltr" align="left">
-  <img src="https://github.com/ussefT/NetworkManager/image.png" />
+  <img src="https://github.com/ussefT/NetworkManager/blob/main/image.png" />
 </div>
 
 <p dir="rtl" align="right">یک برنامهٔ دسکتاپ کوچک برای لینوکس که کمک می‌کند فعالیت شبکه را زیر نظر داشته باشید. نتورک منیجر با <code dir="ltr">Rust</code> و <code dir="ltr">GTK4</code> ساخته شده و هم یک داشبورد کامل دارد و هم یک پنجرهٔ جمع‌وجور که از نوار اعلان‌ها باز می‌شود.</p>
