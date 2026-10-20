@@ -54,10 +54,6 @@ jobs:
             target: aarch64-unknown-linux-gnu
             deb_arch: arm64
             asset_arch: aarch64
-          - runner: ubuntu-22.04
-            target: i686-unknown-linux-gnu
-            deb_arch: i386
-            asset_arch: i686
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out source
@@ -66,13 +62,7 @@ jobs:
       - name: Install GTK4 build dependencies
         run: |
           sudo apt-get update
-          if [ "${{ matrix.target }}" = "i686-unknown-linux-gnu" ]; then
-            sudo dpkg --add-architecture i386
-            sudo apt-get update
-            sudo apt-get install -y build-essential gcc-multilib g++-multilib pkg-config libgtk-4-dev:i386
-          else
-            sudo apt-get install -y build-essential pkg-config libgtk-4-dev
-          fi
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -85,15 +75,6 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Build release binary
-        if: matrix.target != 'i686-unknown-linux-gnu'
-        run: cargo build --release --locked --target ${{ matrix.target }}
-
-      - name: Build 32-bit x86 release binary
-        if: matrix.target == 'i686-unknown-linux-gnu'
-        env:
-          PKG_CONFIG_ALLOW_CROSS: "1"
-          PKG_CONFIG_LIBDIR: /usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig
-          CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER: gcc
         run: cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Package portable Linux archive
@@ -152,8 +133,77 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-i386:
+    needs: validate
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build 32-bit x86 in native i386 environment
+        run: |
+          docker run --rm --platform linux/386 \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            i386/ubuntu:22.04 \
+            bash -s <<'SCRIPT'
+          set -euxo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y build-essential pkg-config libgtk-4-dev curl ca-certificates
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh
+          sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain stable
+          . "$HOME/.cargo/env"
+          cargo build --release --locked --target i686-unknown-linux-gnu
+          SCRIPT
+
+      - name: Package 32-bit x86 releases
+        run: |
+          package_dir="dist/network-manager"
+          mkdir -p "$package_dir"
+          install -m 755 target/i686-unknown-linux-gnu/release/my-gtk-app "$package_dir/network-manager"
+          cat > "$package_dir/README.txt" <<'EOF'
+          Network Manager 0.1.0 - Linux i686 (32-bit x86)
+
+          Run portably from this directory:
+            ./network-manager
+
+          Runtime requirements:
+          - A Linux i686 system with glibc 2.35 or newer and compatible GTK4 runtime libraries.
+          - A desktop session with a supported system tray/status notifier.
+
+          This archive contains the executable, not GTK4 or other system libraries.
+          EOF
+          tar -czf dist/network-manager-0.1.0-linux-i686.tar.gz -C dist network-manager
+
+          package_dir="dist/deb-root"
+          install -Dm755 target/i686-unknown-linux-gnu/release/my-gtk-app "$package_dir/usr/bin/network-manager"
+          install -Dm644 /dev/null "$package_dir/DEBIAN/control"
+          cat > "$package_dir/DEBIAN/control" <<'EOF'
+          Package: network-manager
+          Version: 0.1.0
+          Section: net
+          Priority: optional
+          Architecture: i386
+          Depends: libc6 (>= 2.35), libgtk-4-1
+          Maintainer: Network Manager contributors <network-manager@localhost>
+          Description: GTK4 network activity monitor
+           Displays network interface activity in a desktop dashboard and system tray.
+          EOF
+          dpkg-deb --build --root-owner-group "$package_dir" dist/network-manager_0.1.0_i386.deb
+
+      - name: Upload 32-bit x86 packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-i686
+          path: |
+            dist/network-manager-0.1.0-linux-i686.tar.gz
+            dist/network-manager_0.1.0_i386.deb
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
-    needs: build
+    needs: [build, build-i386]
     runs-on: ubuntu-22.04
     steps:
       - name: Download architecture packages
