@@ -745,7 +745,7 @@ fn chart_scale(value: f64) -> f64 {
 
 fn format_speed(value: f64) -> String {
     if value < 1.0 {
-        format!("{:.0} KB/s", value * 1000.0)
+        format!("{:.0} KB/s", value * 1024.0)
     } else if value < 10.0 {
         format!("{value:.1} MB/s")
     } else {
@@ -921,23 +921,23 @@ fn timer(
         };
 
         if let Some(values) = readings.get(interface_name) {
-            let (Some(download), Some(upload), Some(total_downloaded), Some(total_uploaded)) = (
-                values.get("DS"),
-                values.get("US"),
+            let (Some(total_downloaded), Some(total_uploaded)) = (
                 values.get("AD").and_then(|value| value.parse::<u64>().ok()),
                 values.get("AU").and_then(|value| value.parse::<u64>().ok()),
             ) else {
                 return gtk4::glib::ControlFlow::Continue;
             };
-            let (Some(download_rate), Some(upload_rate)) = (
-                values.get("SD").and_then(|value| value.parse::<f64>().ok()),
-                values.get("SU").and_then(|value| value.parse::<f64>().ok()),
-            ) else {
+            let (Some(download), Some(upload)) = (values.get("SD"), values.get("SU")) else {
+                return gtk4::glib::ControlFlow::Continue;
+            };
+            let (Some(download_rate), Some(upload_rate)) =
+                (parse_speed_mb(download), parse_speed_mb(upload))
+            else {
                 return gtk4::glib::ControlFlow::Continue;
             };
 
-            let download_speed = format!("{download} MB/s");
-            let upload_speed = format!("{upload} MB/s");
+            let download_speed = format!("{download}/s");
+            let upload_speed = format!("{upload}/s");
             let download_total = format_bytes(total_downloaded);
             let upload_total = format_bytes(total_uploaded);
             for dashboard in &dashboards {
@@ -973,9 +973,29 @@ fn format_bytes(bytes: u64) -> String {
     format!("{value:.2} {}", UNITS[unit])
 }
 
+fn parse_speed_mb(speed: &str) -> Option<f64> {
+    let mut parts = speed.split_whitespace();
+    let value = parts.next()?.parse::<f64>().ok()?;
+    let unit = parts.next()?;
+    if parts.next().is_some() || !value.is_finite() || value < 0.0 {
+        return None;
+    }
+
+    let bytes_per_unit = match unit {
+        "B" => 1.0,
+        "KB" => 1024.0,
+        "MB" => 1024.0_f64.powi(2),
+        "GB" => 1024.0_f64.powi(3),
+        "TB" => 1024.0_f64.powi(4),
+        _ => return None,
+    };
+
+    Some(value * bytes_per_unit / 1024.0_f64.powi(2))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::system_clock_labels;
+    use super::{parse_speed_mb, system_clock_labels};
 
     #[test]
     fn chart_times_are_seven_local_clock_ticks() {
@@ -985,5 +1005,24 @@ mod tests {
         assert!(labels.iter().all(|label| label.len() == 8
             && label.chars().nth(2) == Some(':')
             && label.chars().nth(5) == Some(':')));
+    }
+
+    #[test]
+    fn speed_units_are_converted_for_the_graph() {
+        assert_eq!(parse_speed_mb("512 B"), Some(512.0 / 1024.0_f64.powi(2)));
+        assert_eq!(parse_speed_mb("1.00 KB"), Some(1.0 / 1024.0));
+        assert_eq!(
+            parse_speed_mb("1.00 MB"),
+            Some(1.0)
+        );
+        assert_eq!(
+            parse_speed_mb("1.00 GB"),
+            Some(1024.0)
+        );
+        assert_eq!(
+            parse_speed_mb("1.00 TB"),
+            Some(1024.0_f64.powi(2))
+        );
+        assert_eq!(parse_speed_mb("invalid"), None);
     }
 }
