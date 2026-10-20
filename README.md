@@ -57,8 +57,6 @@ To build an optimized executable:
 cargo build --release
 ```
 
-The resulting binary is at `target/release/my-gtk-app`.
-
 ## Project layout
 
 - `src/main.rs` starts the tray icon and GTK application.

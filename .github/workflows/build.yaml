@@ -1,0 +1,83 @@
+name: Build and release Network Manager
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install GTK4 build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check code
+        run: cargo check --locked
+
+      - name: Run Clippy
+        run: cargo clippy --locked
+
+      - name: Run tests
+        run: cargo test --locked
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Package portable Linux archive
+        run: |
+          mkdir -p dist/network-manager
+          install -m 755 target/release/my-gtk-app dist/network-manager/network-manager
+          cat > dist/network-manager/README.txt <<'EOF'
+          Network Manager 0.1.0 - Linux x86_64
+
+          Run portably from this directory:
+            ./network-manager
+
+          To install for the current user:
+            install -Dm755 network-manager "$HOME/.local/bin/network-manager"
+            "$HOME/.local/bin/network-manager"
+
+          Runtime requirements:
+          - A Linux x86_64 system with glibc 2.35 or newer and compatible GTK4 runtime libraries.
+          - A desktop session with a supported system tray/status notifier.
+
+          This archive contains the executable, not GTK4 or other system libraries.
+          EOF
+          tar -czf dist/network-manager-0.1.0-linux-x86_64.tar.gz -C dist network-manager
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: 0.1.0
+          target_commitish: ${{ github.sha }}
+          name: Network Manager 0.1.0
+          body: |
+            Linux x86_64 portable archive. Extract it and run `./network-manager`,
+            or install the executable in `$HOME/.local/bin`.
+
+            GTK4 runtime libraries and a supported system tray/status notifier are
+            required on the host system.
+          files: dist/network-manager-0.1.0-linux-x86_64.tar.gz
+          overwrite_files: true
+          make_latest: true

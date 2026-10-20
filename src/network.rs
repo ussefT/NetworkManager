@@ -10,8 +10,8 @@ pub fn get_interface() -> Vec<String> {
     networks.iter().map(|(name, _)| name.to_string()).collect()
 }
 
-fn check_speed(n:u64)->String{
-        let units = ["B", "KB", "MB", "GB", "TB"];
+fn check_speed(n: u64) -> String {
+    let units = ["B", "KB", "MB", "GB", "TB"];
     let mut size = n as f64;
     let mut i = 0;
 
@@ -25,7 +25,6 @@ fn check_speed(n:u64)->String{
     } else {
         format!("{size:.2} {}", units[i])
     }
- 
 }
 pub fn network(networks: &mut Networks) -> BTreeMap<String, BTreeMap<String, String>> {
     // BTreeMap keeps interface names and statistic keys in sorted order.
@@ -39,10 +38,8 @@ pub fn network(networks: &mut Networks) -> BTreeMap<String, BTreeMap<String, Str
         let download = data.received();
         let upload = data.transmitted();
 
-
         // let download_mb = download as f64 / 1_000_000.0;
         // let upload_mb = upload as f64 / 1_000_000.0;
-
 
         // Download size live.
         interface.insert("DS".to_string(), check_speed(download));

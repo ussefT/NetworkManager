@@ -65,8 +65,6 @@ cargo run
 cargo build --release
 ```
 
-<p dir="rtl" align="right">فایل اجرایی ساخته‌شده در مسیر <code dir="ltr">target/release/my-gtk-app</code> قرار می‌گیرد.</p>
-
 <h2 dir="rtl" align="right">ساختار پروژه</h2>
 
 <ul dir="rtl" align="right">

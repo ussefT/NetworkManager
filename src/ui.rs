@@ -1011,18 +1011,9 @@ mod tests {
     fn speed_units_are_converted_for_the_graph() {
         assert_eq!(parse_speed_mb("512 B"), Some(512.0 / 1024.0_f64.powi(2)));
         assert_eq!(parse_speed_mb("1.00 KB"), Some(1.0 / 1024.0));
-        assert_eq!(
-            parse_speed_mb("1.00 MB"),
-            Some(1.0)
-        );
-        assert_eq!(
-            parse_speed_mb("1.00 GB"),
-            Some(1024.0)
-        );
-        assert_eq!(
-            parse_speed_mb("1.00 TB"),
-            Some(1024.0_f64.powi(2))
-        );
+        assert_eq!(parse_speed_mb("1.00 MB"), Some(1.0));
+        assert_eq!(parse_speed_mb("1.00 GB"), Some(1024.0));
+        assert_eq!(parse_speed_mb("1.00 TB"), Some(1024.0_f64.powi(2)));
         assert_eq!(parse_speed_mb("invalid"), None);
     }
 }
